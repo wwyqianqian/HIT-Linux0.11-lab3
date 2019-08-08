@@ -46,7 +46,7 @@ static inline int send_sig(long sig,struct task_struct * p,int priv)
 static void kill_session(void)
 {
 	struct task_struct **p = NR_TASKS + task;
-	
+
 	while (--p > &FIRST_TASK) {
 		if (*p && (*p)->session == current->session)
 			(*p)->signal |= 1<<(SIGHUP-1);
@@ -63,11 +63,11 @@ int sys_kill(int pid,int sig)
 	int err, retval = 0;
 
 	if (!pid) while (--p > &FIRST_TASK) {
-		if (*p && (*p)->pgrp == current->pid) 
+		if (*p && (*p)->pgrp == current->pid)
 			if ((err=send_sig(sig,*p,1)))
 				retval = err;
 	} else if (pid>0) while (--p > &FIRST_TASK) {
-		if (*p && (*p)->pid == pid) 
+		if (*p && (*p)->pid == pid)
 			if ((err=send_sig(sig,*p,0)))
 				retval = err;
 	} else if (pid == -1) while (--p > &FIRST_TASK) {
@@ -128,6 +128,10 @@ int do_exit(long code)
 		kill_session();
 	current->state = TASK_ZOMBIE;
 	current->exit_code = code;
+
+    fprintk(3, "%ld\t%c\t%ld\n", current->pid, 'E', jiffies);
+
+
 	tell_father(current->father);
 	schedule();
 	return (-1);	/* just to suppress warnings */
@@ -184,6 +188,9 @@ repeat:
 		if (options & WNOHANG)
 			return 0;
 		current->state=TASK_INTERRUPTIBLE;
+
+		fprintk(3, "%ld\t%c\t%ld\n", current->pid, 'W', jiffies);
+
 		schedule();
 		if (!(current->signal &= ~(1<<(SIGCHLD-1))))
 			goto repeat;
